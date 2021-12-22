@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crystalpan.club","root":"/","images":"/images","scheme":"Gemini","version":"8.7.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="debug一般有两种形式，使用调试工具断点单步, 或者分析trace信息。这里说的trace包括调用栈，调用参数等运行时的上下文信息，它们可以在不影响功能地前提下从实际环境中无痛收集。这两种形式就好比一个是开膛破肚的外科手术，一个是望闻问切的推理分析。前者固然简单直观，但一般仅限于开发环境，如果问题只出现于实际环境，那就只能借助trace来找出真凶。因此，错误处理的要求之一就是提供尽可能多的上下文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="错误处理的简洁之道 (三) 上下文">
+<meta property="og:url" content="http://crystalpan.club/2016/01/25/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%89-%E4%B8%8A%E4%B8%8B%E6%96%87/index.html">
+<meta property="og:site_name" content="潘潘的笔记本">
+<meta property="og:description" content="debug一般有两种形式，使用调试工具断点单步, 或者分析trace信息。这里说的trace包括调用栈，调用参数等运行时的上下文信息，它们可以在不影响功能地前提下从实际环境中无痛收集。这两种形式就好比一个是开膛破肚的外科手术，一个是望闻问切的推理分析。前者固然简单直观，但一般仅限于开发环境，如果问题只出现于实际环境，那就只能借助trace来找出真凶。因此，错误处理的要求之一就是提供尽可能多的上下文">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-01-25T05:50:15.000Z">
+<meta property="article:modified_time" content="2021-08-16T01:55:14.749Z">
+<meta property="article:tag" content="C">
+<meta property="article:tag" content="exception">
+<meta property="article:tag" content="异常">
+<meta property="article:tag" content="编程">
+<meta property="article:tag" content="错误处理">
+<meta property="article:tag" content="RAII">
+<meta property="article:tag" content="scope guard">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://crystalpan.club/2016/01/25/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%89-%E4%B8%8A%E4%B8%8B%E6%96%87/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://crystalpan.club/2016/01/25/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%89-%E4%B8%8A%E4%B8%8B%E6%96%87/","path":"2016/01/25/错误处理的简洁之道-三-上下文/","title":"错误处理的简洁之道 (三) 上下文"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>错误处理的简洁之道 (三) 上下文 | 潘潘的笔记本</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">潘潘的笔记本</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%AD%E6%B3%95%E7%B3%96"><span class="nav-number">1.</span> <span class="nav-text">语法糖</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trace-object"><span class="nav-number">2.</span> <span class="nav-text">trace object</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%A4%E5%BA%95"><span class="nav-number">3.</span> <span class="nav-text">交底</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://crystalpan.club/2016/01/25/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%89-%E4%B8%8A%E4%B8%8B%E6%96%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="潘潘的笔记本">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          错误处理的简洁之道 (三) 上下文
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2016-01-25 13:50:15" itemprop="dateCreated datePublished" datetime="2016-01-25T13:50:15+08:00">2016-01-25</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-08-16 09:55:14" itemprop="dateModified" datetime="2021-08-16T09:55:14+08:00">2021-08-16</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>debug一般有两种形式，使用调试工具断点单步, 或者分析trace信息。<br>这里说的trace包括调用栈，调用参数等运行时的上下文信息，它们可以在不影响功能地前提下从实际环境中无痛收集。这两种形式就好比一个是开膛破肚的外科手术，一个是望闻问切的推理分析。前者固然简单直观，但一般仅限于开发环境，如果问题只出现于实际环境，那就只能借助trace来找出真凶。<br>因此，错误处理的要求之一就是提供尽可能多的上下文信息，以便快速定位问题。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="语法糖"><a href="#语法糖" class="headerlink" title="语法糖"></a>语法糖</h2><p>我们先来看一段“传统”的trace收集方式 </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERR_LOG(args...)  dump_callstack(), log(__FUNCTION, __LINE__, args)</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">foo</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span>(!(arg&gt;<span class="number">2</span>)) &#123;</span><br><span class="line">    <span class="built_in">ERR_LOG</span>(<span class="string">&quot;arg=%d&quot;</span>, arg);</span><br><span class="line">    <span class="keyword">return</span> ERR;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">bar</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> rv;</span><br><span class="line">  <span class="keyword">if</span>(OK != (rv=<span class="built_in">foo</span>(arg)))&#123;</span><br><span class="line">    <span class="built_in">ERR_LOG</span>(<span class="string">&quot;foo(%d)failed, return %d&quot;</span>, arg, rv);</span><br><span class="line">    <span class="keyword">return</span> ERR;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">wow</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> rv;</span><br><span class="line">  <span class="keyword">if</span>(OK != (rv=<span class="built_in">bar</span>(arg)))&#123;</span><br><span class="line">    <span class="built_in">ERR_LOG</span>(<span class="string">&quot;bar(%d) failed, return %d&quot;</span>, arg, rv);</span><br><span class="line">    <span class="keyword">return</span> ERR;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码基于返回值传递错误的机制，在程序员不偷懒的情况下，可以将整个调用栈的每一层调用参数和返回值全部打印出来，注意，是每一层调用，当然，还可以包括函数内的临时变量或者其他上下文信息。<br>方法虽拙，但基本上可以提供足够的上下文信息，只要程序员不嫌烦，<strong>可惜这是靠不住的</strong>，往往我们还是在出了问题之后才发现信息不够再去补。<br>有些语法糖可以缓解程序员的不耐烦情绪，我们可以这样简化： </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">foo</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">ENSURE</span>(arg&gt;<span class="number">2</span>) (<span class="string">&quot; arg=%d &quot;</span>, arg);</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">bar</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> rv;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == (rv=<span class="built_in">foo</span>(arg))) (<span class="string">&quot; rv=%d &quot;</span>, rv) (<span class="string">&quot; arg=%d &quot;</span>, arg);</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">wow</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> rv;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == (rv=<span class="built_in">bar</span>(arg))) (<span class="string">&quot; rv=%d &quot;</span>, rv) (<span class="string">&quot; arg=%d &quot;</span>, arg);</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == <span class="built_in">wow</span>(<span class="number">1</span>));</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//output</span></span><br><span class="line"> error: demo.cpp:<span class="number">48</span>, foo : arg&gt;<span class="number">2</span> arg=<span class="number">1</span></span><br><span class="line"> error: demo.cpp:<span class="number">55</span>, bar : OK == (rv=<span class="built_in">foo</span>(arg)) rv=<span class="number">1</span>  arg=<span class="number">1</span></span><br><span class="line"> error: demo.cpp:<span class="number">62</span>, wow : OK == (rv=<span class="built_in">bar</span>(arg)) rv=<span class="number">1</span>  arg=<span class="number">1</span></span><br><span class="line"> error: demo.cpp:<span class="number">68</span>, main : OK == <span class="built_in">wow</span>(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>ENSURE可以后置若干个参数，第一个参数为表达式，后续参数是当第一个表达式为false时打印输出指定内容。<br>其实现并不复杂，借助了函数的反复调用。 </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TRACER</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="function">TRACER &amp; <span class="title">operator</span> <span class="params">()</span> <span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *fmt, ...)</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">      <span class="keyword">thread_local</span> <span class="keyword">char</span> buff[<span class="number">1024</span>];</span><br><span class="line"></span><br><span class="line">      buff[<span class="number">0</span>] = <span class="number">0</span>;</span><br><span class="line">      va_list args;</span><br><span class="line">      <span class="built_in">va_start</span> (args, fmt);</span><br><span class="line">      <span class="built_in">vsnprintf</span>(buff, <span class="built_in"><span class="keyword">sizeof</span></span>(buff), fmt, args);</span><br><span class="line">      <span class="built_in">va_end</span> (args);</span><br><span class="line">     </span><br><span class="line">      std::cout&lt;&lt;buff;</span><br><span class="line">      <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">operator</span> <span class="title">int</span> <span class="params">()</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ERR;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function">TRACER &amp; <span class="title">make_tracer</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *file, <span class="keyword">int</span> line, <span class="keyword">const</span> <span class="keyword">char</span> *func, <span class="keyword">const</span> <span class="keyword">char</span> *expr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> TRACER a;</span><br><span class="line">    std::cout&lt;&lt;<span class="string">&quot;\r\n error: &quot;</span>&lt;&lt;file&lt;&lt;<span class="string">&quot;:&quot;</span>&lt;&lt;line&lt;&lt;<span class="string">&quot;, &quot;</span>&lt;&lt;func&lt;&lt;<span class="string">&quot; : &quot;</span>&lt;&lt;expr;</span><br><span class="line">    <span class="keyword">return</span> a;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expr) \</span></span><br><span class="line"><span class="meta">    <span class="meta-keyword">if</span>( !(expr) ) return make_tracer(__FILE__, __LINE__, __FUNCTION__, #expr)</span></span><br></pre></td></tr></table></figure>
+
+<p> 相比之下,以下这颗糖就有点神奇了。 </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">foo</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">ENSURE</span>(arg&gt;<span class="number">2</span>) (arg);</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">bar</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> rv;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == (rv=<span class="built_in">foo</span>(arg))) (rv) (arg);</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">wow</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> rv;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == (rv=<span class="built_in">bar</span>(arg))) (rv) (arg);</span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == <span class="built_in">wow</span>(<span class="number">1</span>));</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//output:</span></span><br><span class="line"> error: demo.cpp:<span class="number">161</span>, foo : arg&gt;<span class="number">2</span></span><br><span class="line">      arg:<span class="number">1</span></span><br><span class="line"> error: demo.cpp:<span class="number">168</span>, bar : OK == (rv=<span class="built_in">foo</span>(arg))</span><br><span class="line">      rv:<span class="number">1</span></span><br><span class="line">      arg:<span class="number">1</span></span><br><span class="line"> error: demo.cpp:<span class="number">175</span>, wow : OK == (rv=<span class="built_in">bar</span>(arg))</span><br><span class="line">      rv:<span class="number">1</span></span><br><span class="line">      arg:<span class="number">1</span></span><br><span class="line"> error: demo.cpp:<span class="number">182</span>, main : OK == <span class="built_in">wow</span>(<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>其神奇之处在于ENSURE之后的输出内容不是格式化字符串，而直接是个变量。<br>关于这个技术的详细解释可以看<a target="_blank" rel="noopener" href="http://blog.csdn.net/pongba/article/details/19129">这篇文章</a>的前半部分，下面是其对应的代码。 </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TRACER</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">TRACER</span>()</span><br><span class="line">  :<span class="built_in">TRACER_A</span>(*<span class="keyword">this</span>),</span><br><span class="line">   <span class="built_in">TRACER_B</span>(*<span class="keyword">this</span>)</span><br><span class="line">  &#123;  &#125;</span><br><span class="line"></span><br><span class="line">  TRACER&amp; TRACER_A;</span><br><span class="line">  TRACER&amp; TRACER_B;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line">  <span class="function">TRACER &amp; <span class="title">print</span><span class="params">(T var,<span class="keyword">const</span> <span class="keyword">char</span>* name)</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">      std::cout &lt;&lt; <span class="string">&quot;\r\n      &quot;</span> &lt;&lt; name &lt;&lt; <span class="string">&quot;:&quot;</span> &lt;&lt; var;</span><br><span class="line">      <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">operator</span> <span class="title">int</span> <span class="params">()</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ERR;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function">TRACER &amp; <span class="title">make_tracer</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *file, <span class="keyword">int</span> line, <span class="keyword">const</span> <span class="keyword">char</span> *func, <span class="keyword">const</span> <span class="keyword">char</span> *expr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> TRACER a;</span><br><span class="line">    std::cout&lt;&lt;<span class="string">&quot;\r\n error: &quot;</span>&lt;&lt;file&lt;&lt;<span class="string">&quot;:&quot;</span>&lt;&lt;line&lt;&lt;<span class="string">&quot;, &quot;</span>&lt;&lt;func&lt;&lt;<span class="string">&quot; : &quot;</span>&lt;&lt;expr;</span><br><span class="line">    <span class="keyword">return</span> a;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TRACER_A(x) TRACER_OP(x,B)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TRACER_B(x) TRACER_OP(x,A)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TRACER_OP(x,next) \</span></span><br><span class="line"><span class="meta">    TRACER_A.print((x),#x).TRACER_##next</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expr) \</span></span><br><span class="line"><span class="meta">    <span class="meta-keyword">if</span>( !(expr) ) return make_tracer(__FILE__, __LINE__, __FUNCTION__, #expr).TRACER_A</span></span><br></pre></td></tr></table></figure>
+
+<p>看不明白吗，这是万能的宏在显示神迹，我们不必沮丧。<br>传统模式下（通过返回值传递错误）的trace手段在此告一段落，当然它也同样适用于异常传递错误的模式，只需要一点改变。</p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expr) \</span></span><br><span class="line"><span class="meta">        <span class="meta-keyword">if</span>( !(expr) ) \</span></span><br><span class="line"><span class="meta">          throw make_tracer(__FILE__, __LINE__, __FUNCTION__, #expr).TRACER_A</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//output:</span></span><br><span class="line"> error: demo.cpp:<span class="number">67</span>, foo : arg&gt;<span class="number">2</span></span><br><span class="line">      arg:<span class="number">1</span></span><br><span class="line"> error encountered.</span><br></pre></td></tr></table></figure>
+
+<p>看上去好像可以work了，但再仔细一看，trace输出仅发生在抛出异常的那一层调用，没有了逐层调用信息的输出，而且更糟糕的是，如果我们的系统完全采取异常机制的话，那么我们至多只能看到最内层调用的trace输出，甚至是完全没有。 这当然不能算work !</p>
+<hr>
+<h2 id="trace-object"><a href="#trace-object" class="headerlink" title="trace object"></a>trace object</h2><p>传统的trace输出是通过函数调用方式，比如上面演示的std::cout和更普遍的类似printf(const char *, …)的格式化输出方式。<br>相比将trace内容通过构造一个object来输出的方式，后者的优点就是可以控制输出的时机，我们可以在object构造的时候就输出trace，也可以在析构的时候，或者仅在异常回滚时的析构中。<br>这不就是scope guard么 … </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SCOPE_TRACE</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">SCOPE_TRACE</span>(std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_exception, <span class="keyword">const</span> <span class="keyword">char</span> *_file, <span class="keyword">int</span> _line, <span class="keyword">const</span> <span class="keyword">char</span> *_func)</span><br><span class="line">  : <span class="built_in">on_exp</span>(on_exception),</span><br><span class="line">    <span class="built_in">file</span>(_file),</span><br><span class="line">    <span class="built_in">func</span>(_func),</span><br><span class="line">    <span class="built_in">line</span>(_line)</span><br><span class="line">  &#123; &#125;</span><br><span class="line"></span><br><span class="line">  ~<span class="built_in">SCOPE_TRACE</span>()</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">if</span>(std::<span class="built_in">uncaught_exception</span>()) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;\r\n %s:%d, %s:&quot;</span>,file, line, func);</span><br><span class="line">        <span class="built_in">on_exp</span>();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_exp;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> * file, *func;</span><br><span class="line">    <span class="keyword">int</span> line;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LINENAME_CAT(name, <span class="meta-keyword">line</span>) name##<span class="meta-keyword">line</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LINENAME(name, <span class="meta-keyword">line</span>) LINENAME_CAT(name, <span class="meta-keyword">line</span>)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TRACE(args...) \</span></span><br><span class="line"><span class="meta">        SCOPE_TRACE LINENAME(scope_guard, __LINE__)([&amp;]\</span></span><br><span class="line"><span class="meta">            &#123; printf(args); &#125;, __FILE__, __LINE__, __FUNCTION__)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">TRACE</span>(<span class="string">&quot;arg = %d&quot;</span>, arg);</span><br><span class="line">  <span class="built_in">ENSURE</span>(arg&gt;<span class="number">2</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">TRACE</span>(<span class="string">&quot;arg = %d&quot;</span>, arg);</span><br><span class="line">  <span class="built_in">foo</span>(arg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">wow</span><span class="params">(<span class="keyword">int</span> arg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">TRACE</span>(<span class="string">&quot;arg = %d&quot;</span>, arg);</span><br><span class="line">  <span class="built_in">bar</span>(arg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="built_in">wow</span>(<span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in"><span class="keyword">catch</span></span> (...) &#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;\r\n error encountered.&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//output</span></span><br><span class="line"> demo.cpp:<span class="number">45</span>, foo:arg = <span class="number">1</span></span><br><span class="line"> demo.cpp:<span class="number">51</span>, bar:arg = <span class="number">1</span></span><br><span class="line"> demo.cpp:<span class="number">57</span>, wow:arg = <span class="number">1</span></span><br><span class="line"> error encountered.</span><br></pre></td></tr></table></figure>
+
+<p>当异常引起的stack unwinding到某个trace object时，trace信息就被触发输出，一直持续到exception被catch住为止，如果异常又被重新抛出，trace信息又会继续输出。因此从最初的异常抛出点到最终异常被真正终结，这段堆栈中的所有trace object都会输出信息，这构成了一个和调用栈对应的trace栈。<br>如果整个系统纯粹地基于异常传递错误，那么这段代码就足以保证trace栈的完整。而如果在一个混杂模式的系统，即在调用栈中某些调用支持异常，而某些会终结异常转为返回值，那么trace栈就会不完整。 办法当然有:</p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SCOPE_TRACE</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">SCOPE_TRACE</span>(std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_exception, <span class="keyword">const</span> <span class="keyword">char</span> *_file, <span class="keyword">int</span> _line, <span class="keyword">const</span> <span class="keyword">char</span> *_func)</span><br><span class="line">  : <span class="built_in">on_exp</span>(on_exception),</span><br><span class="line">    <span class="built_in">file</span>(_file),</span><br><span class="line">    <span class="built_in">func</span>(_func),</span><br><span class="line">    <span class="built_in">line</span>(_line)</span><br><span class="line">  &#123;</span><br><span class="line">      db.<span class="built_in">push_back</span>(<span class="keyword">this</span>);</span><br><span class="line">      is_dumped = <span class="literal">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">print</span><span class="params">()</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;\r\n %s:%d, %s:&quot;</span>,file, line, func);</span><br><span class="line">      <span class="built_in">on_exp</span>();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ~<span class="built_in">SCOPE_TRACE</span>()</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">if</span>(std::<span class="built_in">uncaught_exception</span>() &amp;&amp; (!is_dumped)) &#123;</span><br><span class="line">        <span class="keyword">for</span>(std::vector&lt;SCOPE_TRACE *&gt;::reverse_iterator it=db.<span class="built_in">rbegin</span>(); it!=db.<span class="built_in">rend</span>(); it++) &#123;</span><br><span class="line">            (*it)-&gt;<span class="built_in">print</span>();</span><br><span class="line">        &#125;</span><br><span class="line">        is_dumped = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    db.<span class="built_in">pop_back</span>();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_exp;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> * file, *func;</span><br><span class="line">    <span class="keyword">int</span> line;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">thread_local</span> <span class="keyword">static</span> std::vector&lt;SCOPE_TRACE *&gt; db;</span><br><span class="line">    <span class="keyword">thread_local</span> <span class="keyword">static</span> <span class="keyword">bool</span> is_dumped;</span><br><span class="line"></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">thread_local</span> std::vector&lt;SCOPE_TRACE *&gt; SCOPE_TRACE::db;</span><br><span class="line"><span class="keyword">thread_local</span> <span class="keyword">bool</span> SCOPE_TRACE::is_dumped;</span><br></pre></td></tr></table></figure>
+
+<p>构造一个per thread的栈（此处用vector实现），每个trace object构造时将自己压入栈，析构时弹出。<br>trace输出策略调整为，当异常抛出后，在unwinding到第一个trace object时，将trace栈内所有对象依次打印，然后标记状态，后续unwinding的对象不再重复打印，一直到有新的trace object被构造，通常这表明异常已被终结。<br>这个机制也同样适用于纯返回值模式的系统，将析构函数中打印部分的实现挪到一个公共接口中，在出错时显式调用该接口。 </p>
+<p>trace输出也可以发生在构造函数中，这就带来的trace object的第二个功能，即实时地输出trace来反映运行轨迹，实际上这就是传统的trace功能。我们可以在构造传入一个控制对象的引用，通过该对象来控制是否在构造时输出。 </p>
+<p>trace对象的构造成本其实很低，只是初始化一下成员变量，最多再把自己的指针压入栈，而vector栈可以预先resize到足够大，这样就避免了因为动态调整vector大小而引起的动态内存操作。 </p>
+<p>相比前面提到的语法糖手法，trace object实现了将trace与错误判断分离，ENSURE不再需要后跟一堆上下文输出，这对于代码的简洁和易读性大有裨益。 </p>
+<p>另外，trace object实际上还是一个报告异常发生位置的哨兵，举个例子：<br>当STL库抛出异常时，我们得在每次调用STL时用try/catch将其括住，才能第一时间知道STL出错。这显然很累赘，借助trace object，我们只需在STL调用前放一个trace object，那么异常一出现，trace object就可以提供“作案地点”的证据。</p>
+<hr>
+<h2 id="交底"><a href="#交底" class="headerlink" title="交底"></a>交底</h2><p>演示代码中使用到的技术大多是大神们早已发明的，我个人的原创主要在trace object，当然这也是受了scope guard的启发，在此向他们致敬。<br>特别要提的是这篇文章“<a target="_blank" rel="noopener" href="http://mindhacks.cn/2012/08/27/modern-cpp-practices/">C++11（及现代C++风格）和快速迭代式开发</a>”给了我最大的启发，让我逐渐意识到，在C++的世界我们可能拥有着比我们想象的大得多的自由度，或许我们应该大胆去想象更完美的表达方式，它们可能真的存在。</p>
+<hr>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Enhanced Assertions<br><a target="_blank" rel="noopener" href="http://blog.csdn.net/pongba/article/details/19129">http://blog.csdn.net/pongba/article/details/19129</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C</a>
+              <a href="/tags/exception/" rel="tag"># exception</a>
+              <a href="/tags/%E5%BC%82%E5%B8%B8/" rel="tag"># 异常</a>
+              <a href="/tags/%E7%BC%96%E7%A8%8B/" rel="tag"># 编程</a>
+              <a href="/tags/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="tag"># 错误处理</a>
+              <a href="/tags/RAII/" rel="tag"># RAII</a>
+              <a href="/tags/scope-guard/" rel="tag"># scope guard</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/01/17/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%BA%8C-c/" rel="prev" title="错误处理的简洁之道 (二) C++">
+                  <i class="fa fa-chevron-left"></i> 错误处理的简洁之道 (二) C++
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/02/27/%E5%BC%82%E5%B8%B8%E4%B8%8E%E6%9E%90%E6%9E%84/" rel="next" title="异常与析构">
+                  异常与析构 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder"></span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

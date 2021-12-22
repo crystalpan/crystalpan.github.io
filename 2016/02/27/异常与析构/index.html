@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crystalpan.club","root":"/","images":"/images","scheme":"Gemini","version":"8.7.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="在C++中，禁止在析构函数中抛出异常，被认为是一条铁律，何以见得呢？自C++11开始，析构函数默认声明为exception free，也就是不允许抛出任何异常。同时STL的所有容器也遵循此律，如果你传给容器的对象在析构中抛出异常，程序立即会被terminate，因为容器的析构函数不会吞掉这个异常，它会向外传出，而这违背了容器析构函数的exception free的声明，程序立即被终止运行。  那么">
+<meta property="og:type" content="article">
+<meta property="og:title" content="异常与析构">
+<meta property="og:url" content="http://crystalpan.club/2016/02/27/%E5%BC%82%E5%B8%B8%E4%B8%8E%E6%9E%90%E6%9E%84/index.html">
+<meta property="og:site_name" content="潘潘的笔记本">
+<meta property="og:description" content="在C++中，禁止在析构函数中抛出异常，被认为是一条铁律，何以见得呢？自C++11开始，析构函数默认声明为exception free，也就是不允许抛出任何异常。同时STL的所有容器也遵循此律，如果你传给容器的对象在析构中抛出异常，程序立即会被terminate，因为容器的析构函数不会吞掉这个异常，它会向外传出，而这违背了容器析构函数的exception free的声明，程序立即被终止运行。  那么">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-02-27T07:30:00.000Z">
+<meta property="article:modified_time" content="2021-08-16T05:30:25.408Z">
+<meta property="article:tag" content="C">
+<meta property="article:tag" content="destructor">
+<meta property="article:tag" content="exception">
+<meta property="article:tag" content="异常">
+<meta property="article:tag" content="析构">
+<meta property="article:tag" content="编程">
+<meta property="article:tag" content="错误处理">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://crystalpan.club/2016/02/27/%E5%BC%82%E5%B8%B8%E4%B8%8E%E6%9E%90%E6%9E%84/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://crystalpan.club/2016/02/27/%E5%BC%82%E5%B8%B8%E4%B8%8E%E6%9E%90%E6%9E%84/","path":"2016/02/27/异常与析构/","title":"异常与析构"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>异常与析构 | 潘潘的笔记本</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">潘潘的笔记本</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Exception-in-exception"><span class="nav-number">1.</span> <span class="nav-text">Exception in exception</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Error-classify"><span class="nav-number">2.</span> <span class="nav-text">Error classify</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Destructor-design"><span class="nav-number">3.</span> <span class="nav-text">Destructor design</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://crystalpan.club/2016/02/27/%E5%BC%82%E5%B8%B8%E4%B8%8E%E6%9E%90%E6%9E%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="潘潘的笔记本">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          异常与析构
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2016-02-27 15:30:00" itemprop="dateCreated datePublished" datetime="2016-02-27T15:30:00+08:00">2016-02-27</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-08-16 13:30:25" itemprop="dateModified" datetime="2021-08-16T13:30:25+08:00">2021-08-16</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>在C++中，禁止在析构函数中抛出异常，被认为是一条铁律，何以见得呢？<br>自C++11开始，析构函数默认声明为exception free，也就是不允许抛出任何异常。同时STL的所有容器也遵循此律，如果你传给容器的对象在析构中抛出异常，程序立即会被terminate，因为容器的析构函数不会吞掉这个异常，它会向外传出，而这违背了容器析构函数的exception free的声明，程序立即被终止运行。 </p>
+<p>那么这条铁律的背后原委究竟是什么呢。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="Exception-in-exception"><a href="#Exception-in-exception" class="headerlink" title="Exception in exception"></a>Exception in exception</h2><p>C++从标准上禁止在异常的stack rewinding处理中再抛出异常，换句话说，不允许在try语句块中连续抛出两个异常。 举例说明： </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">FOO</span> &#123;</span></span><br><span class="line">    ~<span class="built_in">FOO</span>() <span class="built_in"><span class="keyword">noexcept</span></span>(<span class="literal">false</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;\r\n foo throw&quot;</span>;</span><br><span class="line">        <span class="keyword">throw</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">BAR</span> &#123;</span></span><br><span class="line">    <span class="built_in">BAR</span>()</span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;\r\n bar throw&quot;</span>;</span><br><span class="line">        <span class="keyword">throw</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">      FOO foo;</span><br><span class="line">      BAR bar;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="built_in"><span class="keyword">catch</span></span> (...) &#123;</span><br><span class="line">      std::cout &lt;&lt; <span class="string">&quot;\r\n main catch&quot;</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在try中， bar的构造函数抛出异常并引起stack rewinding， 然后foo的析构函数抛出第二个异常，程序terminate。 </p>
+<p>为什么这样设计呢，因为连续抛出两个异常在逻辑上存在困局。 逻辑上有几种选择：两个都处理，只处理前一个或者后一个。<br>如果两个都处理，那么就会被catch两次，也就是说错误相关的处理进行了两次，而事实上，这可能只算一个错误，那么错误处理部分的代码就要判断是不是第二次的错误处理要忽略，以避免诸如资源的重复释放，而这带来了复杂度。<br>只处理一个异常的问题是，无论选择前一个还是后一个，都不合适，都会带来信息的丢失。 </p>
+<p>基于这些逻辑上的问题，C++被设计为不允许在stack rewinding中再抛出异常。 有人可能想到使用uncaught_exception来避免抛出第二个异常，没错，它确实可以。 </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">FOO</span> &#123;</span></span><br><span class="line">    ~<span class="built_in">FOO</span>() <span class="built_in"><span class="keyword">noexcept</span></span>(<span class="literal">false</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span>(!(std::<span class="built_in">uncaught_exception</span>())) &#123;</span><br><span class="line">            std::cout &lt;&lt; <span class="string">&quot;\r\n foo throw&quot;</span>;</span><br><span class="line">            <span class="keyword">throw</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">output:</span><br><span class="line"> bar <span class="keyword">throw</span></span><br><span class="line"> main <span class="keyword">catch</span></span><br></pre></td></tr></table></figure>
+
+<p>但uncaught_exception同时也带来类似问题，这就是析构函数的双重行为，既增加了析构函数的复杂度，也增加了处理错误时的逻辑复杂度。<br>如果我们接受这个复杂度，允许在析构中抛出异常，那么请避免将其作为容器的元素。否则会导致前面讲到的terminate，容器为什么不吞掉其中元素析构时抛出的异常呢，这又是一个困局。如果容器吞掉异常意味着掩盖错误，调用者就无法察觉容器内元素的错误，而抛出异常，其余元素的析构就无法执行。如果保存异常待元素都析构完后再抛出，那么应该保存哪个异常呢，第一个还是最后一个。 </p>
+<p>面对这些困局，C++设计者倡导避免在析构函数中抛出异常，当然也没有禁止。确实，只要析构不抛出异常，一切困局都不存在了。但这把难题丢给了析构函数，如果后者真的发生错误该怎么办呢。</p>
+<hr>
+<h2 id="Error-classify"><a href="#Error-classify" class="headerlink" title="Error classify"></a>Error classify</h2><p>错误有哪些种类，分别如何处理？<br>基于处理方式的不同，我们可以简单粗暴地把所有的错误划分成两类，可修复的和不可修复的。<br>可修复的错误可以通过RAII，scope guard等机制回滚到操作发生前的状态，不可修复的就terminate，当然在终止之前有必要先做一些数据保存和上下文抓取，便于debug。<br>举例说明：<br>对于运行环境下的常见错误，比如用户输入错误，网络连接中断，应做恢复处理，回滚到操作之前的状态，这样的用户体验相对于直接结束程序明显好得多，当然有些情况也是致命的，比如数据文件丢失，内存申请失败，这可能导致程序无法继续正常运行，还是直接终止比较好。<br>再比如数据被改写（corruption），一致性检查失败，这些情况可以认为是coding error，也就是程序员犯的错误，而不是运行环境下不可控因素引起的。修复coding error比较困难，因为它意味着在代码的某处存在逻辑错误，比如指针被改写了，再把它纠正回去是不可能的，这时候甚至是无法保证资源释放干净的，因为资源的信息可能已经丢失了。即使可以把整个操作都回退，这个逻辑错误仍然有可能导致下一个操作继续出现错误，这样的修复操作对于用户体验并没有帮助，一般的处理方式是直接terminate，避免错误进一步扩大或转移。</p>
+<hr>
+<h2 id="Destructor-design"><a href="#Destructor-design" class="headerlink" title="Destructor design"></a>Destructor design</h2><p>基于上面对错误的分类，对于一个错误，我们的选择就是回滚或者终结，而在析构函数中，回滚操作的空间局限在析构函数内部，因为我们无法通过异常或者返回值把错误传递出去。简而言之，能处理的就内部处理掉，不能处理的就终结程序（直接调用terminate或者通过抛出异常来触发terminate）。<br>具体来看：<br>对于coding error，没有疑议，应当终结。<br>其次，从功能设计上尽可能避免可以引发错误的操作。比如避免申请新的资源，避免调用可能抛出异常的接口。<br>事实上析构函数的职责应当定义为单纯的资源释放。只要数据不被corrupt，理论上资源释放不应该出现错误。释放内存，关闭文件，断开连接，这些操作不应该返回错误，除非我们给的参数有问题（数据corrupt或者代码逻辑错误）。<br>同理，设计上应倾向于可以局部回滚的处理，比如在析构中进行log处理，即使该处理出现问题，也可以在析构函数中彻底回退。 </p>
+<p>最后需要强调的是，避免在析构中抛出异常并不意味着忽略错误，错误需要诚实面对。<br>代码里如此，代码外亦是～</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C</a>
+              <a href="/tags/destructor/" rel="tag"># destructor</a>
+              <a href="/tags/exception/" rel="tag"># exception</a>
+              <a href="/tags/%E5%BC%82%E5%B8%B8/" rel="tag"># 异常</a>
+              <a href="/tags/%E6%9E%90%E6%9E%84/" rel="tag"># 析构</a>
+              <a href="/tags/%E7%BC%96%E7%A8%8B/" rel="tag"># 编程</a>
+              <a href="/tags/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="tag"># 错误处理</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/01/25/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%89-%E4%B8%8A%E4%B8%8B%E6%96%87/" rel="prev" title="错误处理的简洁之道 (三) 上下文">
+                  <i class="fa fa-chevron-left"></i> 错误处理的简洁之道 (三) 上下文
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/04/01/pimpl%E7%9A%84%E5%A6%99%E5%A4%84/" rel="next" title="pimpl的妙处">
+                  pimpl的妙处 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder"></span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

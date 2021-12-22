@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crystalpan.club","root":"/","images":"/images","scheme":"Gemini","version":"8.7.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="我真正发现C++的妙处是在与它相识十年以后。在这十年里，我一直从事嵌入式系统偏底层模块的开发，在这个领域，一般认为C语言是不二的选择（虽然仔细推敲起来其理由并不太成立）。我也同样这么深信不疑，直到十年以后的一天，STL 容器和算法的简便性打动了我，我开始尝试在一个新模块中使用C++，然后，一个广阔的新天地出现了…  在这个新天地中，错误处理借助C++的若干个特性，实现了真正的简洁。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="错误处理的简洁之道 (二) C++">
+<meta property="og:url" content="http://crystalpan.club/2016/01/17/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%BA%8C-c/index.html">
+<meta property="og:site_name" content="潘潘的笔记本">
+<meta property="og:description" content="我真正发现C++的妙处是在与它相识十年以后。在这十年里，我一直从事嵌入式系统偏底层模块的开发，在这个领域，一般认为C语言是不二的选择（虽然仔细推敲起来其理由并不太成立）。我也同样这么深信不疑，直到十年以后的一天，STL 容器和算法的简便性打动了我，我开始尝试在一个新模块中使用C++，然后，一个广阔的新天地出现了…  在这个新天地中，错误处理借助C++的若干个特性，实现了真正的简洁。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-01-17T10:02:06.000Z">
+<meta property="article:modified_time" content="2021-08-13T07:43:33.268Z">
+<meta property="article:tag" content="C">
+<meta property="article:tag" content="exception">
+<meta property="article:tag" content="异常">
+<meta property="article:tag" content="编程">
+<meta property="article:tag" content="错误处理">
+<meta property="article:tag" content="RAII">
+<meta property="article:tag" content="scope guard">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://crystalpan.club/2016/01/17/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%BA%8C-c/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://crystalpan.club/2016/01/17/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%BA%8C-c/","path":"2016/01/17/错误处理的简洁之道-二-c/","title":"错误处理的简洁之道 (二) C++"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>错误处理的简洁之道 (二) C++ | 潘潘的笔记本</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">潘潘的笔记本</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#exception%EF%BC%88%E5%BC%82%E5%B8%B8%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">exception（异常）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RAII%EF%BC%88%E8%B5%84%E6%BA%90%E8%8E%B7%E5%8F%96%E5%8D%B3%E5%88%9D%E5%A7%8B%E5%8C%96%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">RAII（资源获取即初始化）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scope-guard"><span class="nav-number">3.</span> <span class="nav-text">scope guard</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://crystalpan.club/2016/01/17/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%BA%8C-c/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="潘潘的笔记本">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          错误处理的简洁之道 (二) C++
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2016-01-17 18:02:06" itemprop="dateCreated datePublished" datetime="2016-01-17T18:02:06+08:00">2016-01-17</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-08-13 15:43:33" itemprop="dateModified" datetime="2021-08-13T15:43:33+08:00">2021-08-13</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>我真正发现C++的妙处是在与它相识十年以后。<br>在这十年里，我一直从事嵌入式系统偏底层模块的开发，在这个领域，一般认为C语言是不二的选择（虽然仔细推敲起来其理由并不太成立）。<br>我也同样这么深信不疑，直到十年以后的一天，STL 容器和算法的简便性打动了我，我开始尝试在一个新模块中使用C++，然后，一个广阔的新天地出现了… </p>
+<p>在这个新天地中，错误处理借助C++的若干个特性，实现了真正的简洁。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="exception（异常）"><a href="#exception（异常）" class="headerlink" title="exception（异常）"></a>exception（异常）</h2><p>对于异常的普遍误解有：影响性能，增加代码体积，以及使用起来并不方便和简洁。<br>我相信这些认识可能是在浅尝辄止后下的结论，我们会在后面再来仔细检视这些理解误区。 </p>
+<p>异常的主要作用在于提供了一个不同于return语句的返回手段，通过throw可以直接返回到临近的try/catch位置，它不仅仅是指令跳转和堆栈的回滚，更重要的是，堆栈回滚时栈内的对象会被析构。<br>so，只要栈内对象的析构函数保证了资源的释放，那么异常跳转就可以保证资源的回滚操作。</p>
+<hr>
+<h2 id="RAII（资源获取即初始化）"><a href="#RAII（资源获取即初始化）" class="headerlink" title="RAII（资源获取即初始化）"></a>RAII（资源获取即初始化）</h2><p>在构造函数中申请资源，在析构函数中释放资源。<br>如果构造失败，抛出异常。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FOO</span>&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">FOO</span>()</span><br><span class="line">  :<span class="built_in">bar</span>()</span><br><span class="line">  &#123;</span><br><span class="line">    buf = <span class="keyword">new</span> <span class="keyword">char</span>[BUF_SIZE];</span><br><span class="line">    <span class="keyword">if</span>(<span class="number">0</span>==buf) <span class="keyword">throw</span> <span class="built_in">ERROR</span>(__FUNCTION__,__LINE__);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ~<span class="built_in">FOO</span>()</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">delete</span> buf;</span><br><span class="line">  &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">  BAR bar;</span><br><span class="line">  <span class="keyword">char</span> *buf;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p> 如果内存分配失败，就抛出异常，堆栈回滚，请注意，此时并不调用~FOO()，但是会析构已经构造成功的成员变量对象bar，假定BAR同样具备RAII特性，那么bar会在其析构时释放相关资源，于是异常引起的堆栈回滚会确保所有资源一个不拉地被释放。至于应该在哪里catch这些异常，后面会讨论。</p>
+<p>实际上new也可以在分配失败时抛出类型为std::bad_alloc的异常，取决于链接的stdlib是否支持异常，因此这段代码可以进一步省略掉对new返回值的判断。 </p>
+<p>接下来，如果增加一个同样需要进行new操作的buf_2成员变量，在buf_2内存分配失败时该怎么处理buf的回滚呢？<br>答案是，把一切资源都变成RAII对象，对于内存资源，可以使用C++标准库提供的智能指针。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FOO</span>&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">FOO</span>()</span><br><span class="line">  :<span class="built_in">bar</span>(),</span><br><span class="line">   <span class="built_in">buf_1</span>(<span class="keyword">new</span> <span class="keyword">char</span>[BUF_SIZE]),</span><br><span class="line">   <span class="built_in">buf_2</span>(<span class="keyword">new</span> <span class="keyword">char</span>[BUF_SIZE]) </span><br><span class="line">  &#123;  &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">  BAR bar;</span><br><span class="line">  unique_ptr&lt;<span class="keyword">char</span>&gt; buf_1;</span><br><span class="line">  unique_ptr&lt;<span class="keyword">char</span>&gt; buf_2;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>C++11引入的unique_ptr智能指针对象会在其析构函数中调用delete来释放内存，如果是C++98环境可以使用auto_ptr代替unique_ptr，或者使用boost库。智能指针是现代C++编程的重要组成部分。 </p>
+<p>如果buf_1的new操作失败，bar会被析构，如果buf_2的new失败了，buf_1和bar都会被析构。 另外，由于FOO的所有成员变量都是RAII的，因此其析构函数可以省略。 </p>
+<p>现在看起来，只要确保资源类对象是RAII的，且构造失败时会抛出异常，我们就<strong>再也不需要</strong>检查资源是否分配失败。</p>
+<p>如果回滚操作不是资源的释放，而是一些事务性的回滚，比如这样：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">do_steps</span><span class="params">(<span class="keyword">char</span> *dir, <span class="keyword">char</span> *file, <span class="keyword">char</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">create_dir</span>(dir);</span><br><span class="line">  <span class="built_in">create_file</span>(file);</span><br><span class="line">  <span class="built_in">modify_file</span>(data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>比如当create_file函数抛出异常时，我们希望回滚create_dir函数所作的操作：删除新建的目录。<br>是的，我们的确可以把三个函数都封装成RAII对象，但有所变化的是，在do_steps成功返回时这些对象也会被析构，而在这种情况下我们并不希望回滚操作。<br>有两个办法来避免，让这些RAII对象一直存在，或者在do_steps成功返回前通知他们不需要真正析构。<br>对于事务性的调用，我们并不希望每次调用就要创建若干个新的对象并一直持有它，否则反复调用的结果就是产生大量的对象将内存耗尽，这和资源类的调用恰恰相反，后者正是希望持有这些资源对象。<br>看来只有第二个办法才合适，但它并不简洁，我们为此要将接口封装为RAII的class，这些class还要额外提供接口来设置是否在析构时啥都不做。 </p>
+<p>除了RAII,还需要一副解药。</p>
+<hr>
+<h2 id="scope-guard"><a href="#scope-guard" class="headerlink" title="scope guard"></a>scope guard</h2><p>scope guard相当于仅有析构部分的RAII。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SCOPE_GUARD</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">SCOPE_GUARD</span>(std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_exception)</span><br><span class="line">  : <span class="built_in">on_exp</span>(on_exception)</span><br><span class="line">  &#123; &#125;</span><br><span class="line"></span><br><span class="line">  ~<span class="built_in">SCOPE_GUARD</span>()</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">if</span>(std::<span class="built_in">uncaught_exception</span>())  <span class="built_in">on_exp</span>();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_exp;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>它的析构函数仅在处于异常抛出而尚未被catch的情况下，执行特定的处理。<br>因此do_steps现在可以这样实现 </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">do_steps</span><span class="params">(<span class="keyword">char</span> *dir, <span class="keyword">char</span> *file, <span class="keyword">char</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">create_dir</span>(dir);</span><br><span class="line">  <span class="function">SCOPE_GUARD <span class="title">rollback_dir</span><span class="params">([&amp;] &#123; delete_dir(dir); &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">create_file</span>(file);</span><br><span class="line">  <span class="function">SCOPE_GUARD <span class="title">rollback_file</span><span class="params">([&amp;] &#123; delete_file(file); &#125;)</span></span>;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">modify_file</span>(data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 我们还可以进一步用宏来增强可读性</p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LINENAME_CAT(name, <span class="meta-keyword">line</span>) name##<span class="meta-keyword">line</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LINENAME(name, <span class="meta-keyword">line</span>) LINENAME_CAT(name, <span class="meta-keyword">line</span>)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ON_ERROR(rollback) SCOPE_GUARD LINENAME(scope_guard, __LINE__)([&amp;]&#123; rollback &#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">do_steps</span><span class="params">(<span class="keyword">char</span> *dir, <span class="keyword">char</span> *file, <span class="keyword">char</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">create_dir</span>(dir);</span><br><span class="line">  <span class="built_in">ON_ERROR</span>( <span class="built_in">delete_dir</span>(dir); );</span><br><span class="line"></span><br><span class="line">  <span class="built_in">create_file</span>(file);</span><br><span class="line">  <span class="built_in">ON_ERROR</span>( <span class="built_in">delete_file</span>(file); );</span><br><span class="line"></span><br><span class="line">  <span class="built_in">modify_file</span>(data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p> 宏隐藏了变量名以及lambda表达式，因此阅读时的注意力就可以集中到滚操作的核心内容。<br>上述的scope guard机制使用了C++11中的lambda和function，C++98环境下的实现会大不一样，具体可以看<a target="_blank" rel="noopener" href="http://www.drdobbs.com/cpp/generic-change-the-way-you-write-excepti/184403758">这里</a>，不过最终经宏封装后的使用方式大体一致。</p>
+<p>因此，只要保证代码是exception safe（即出现异常时，堆栈回滚能自动释放资源或回滚操作），并且我们调用的函数会在出错时抛出异常，我们就<strong>不再需要</strong>检查是否出错。<br>仔细想想上面这句话，它应该挑战了我们多年的实际编程经验，那些铺天盖地对返回值做检查的代码现在终于可以消失了。</p>
+<p>当然，如果被调用的函数不会抛出异常呢，比如os的API，这种情况下检查还是无法避免，不过宏可以给我们一些帮助。 </p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expression) \</span></span><br><span class="line"><span class="meta">    <span class="meta-keyword">if</span>(!(expression)) throw ERROR(__FUNCTION__, __LINE__, #expression);</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">do_steps</span><span class="params">(<span class="keyword">char</span> *dir, <span class="keyword">char</span> *file, <span class="keyword">char</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">ENSURE</span>(OK==<span class="built_in">create_dir</span>(dir));</span><br><span class="line">  <span class="built_in">ON_ERROR</span>( <span class="built_in">delete_dir</span>(dir); );</span><br><span class="line"></span><br><span class="line">  <span class="built_in">ENSURE</span>(OK==<span class="built_in">create_file</span>(file));</span><br><span class="line">  <span class="built_in">ON_ERROR</span>( <span class="built_in">delete_file</span>(file); );</span><br><span class="line"></span><br><span class="line">  <span class="built_in">ENSURE</span>(OK==<span class="built_in">modify_file</span>(data));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意，rollback中的函数调用不应该再检查是否出错，因为在异常中再抛出异常可能导致terminate。 </p>
+<p>最后，我们再来看前面提出的几个问题。<br><em><strong>在哪里catch异常</strong></em><br>以我有限的实践经验，it depends ：<br>如果在一个legacy的系统中，有模块支持异常，也有模块不支持异常，那么使用异常的模块的API就需要定义两套。一套接口定义为exception free，即不会抛出异常，通过返回值指示错误，另外一套API则允许抛出异常。<br>在exception free的这套API的实现里去调用会抛出异常的API接口，同时catch异常并转为返回值。<br>这种情况下catch位于模块的API边界。<br>如果是在一个彻底的使用exception来传递错误的系统里，那么只需要在整个系统的IO边界catch即可。</p>
+<p><strong><em>异常的性能问题，以及引起代码体积膨胀</em></strong><br>性能下降基本可以忽略，代码体积增加大概10%左右。<br>其实只要考虑到那些同时可以消除的极其巨量的返回值检查代码，这就已经pay back了，更不用提消除重复和提高可读性带来的收益。 </p>
+<p><strong><em>异常使用起来并不方便</em></strong><br>oh, really ? </p>
+<p>或许客观条件局限，我们可能无法在已有的系统中使能异常机制，但基于RAII+scope_guard+return的方式，还是大有帮助的，而这只需要在现有方式上做一点点改变。</p>
+<figure class="highlight cc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SCOPE_GUARD</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="built_in">SCOPE_GUARD</span>(std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_error, <span class="keyword">bool</span> &amp;ref_dismiss)</span><br><span class="line">  : <span class="built_in">on_err</span>(on_error),</span><br><span class="line">    <span class="built_in">dismiss</span>(ref_dismiss)</span><br><span class="line">  &#123; &#125;</span><br><span class="line"></span><br><span class="line">  ~<span class="built_in">SCOPE_GUARD</span>()</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">if</span>(!dismiss)  <span class="built_in">on_err</span>();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    std::function&lt;<span class="built_in"><span class="keyword">void</span></span>()&gt; on_err;</span><br><span class="line">    <span class="keyword">bool</span> &amp;dismiss;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ON_ERROR(rollback) SCOPE_GUARD LINENAME(scope_guard, __LINE__)([&amp;]&#123; rollback &#125;, dismiss)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expression) <span class="meta-keyword">if</span>(!(expression)) return ERR;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">do_steps</span><span class="params">(<span class="keyword">char</span> *dir, <span class="keyword">char</span> *file, <span class="keyword">char</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">bool</span> dismiss = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == <span class="built_in">create_dir</span>(dir));</span><br><span class="line">  <span class="built_in">ON_ERROR</span>( <span class="built_in">delete_dir</span>(dir); );</span><br><span class="line"></span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == <span class="built_in">create_file</span>(file));</span><br><span class="line">  <span class="built_in">ON_ERROR</span>( <span class="built_in">delete_file</span>(file); );</span><br><span class="line"></span><br><span class="line">  <span class="built_in">ENSURE</span>(OK == <span class="built_in">modify_file</span>(data));</span><br><span class="line"></span><br><span class="line">  dismiss = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这一点点的改变包括，增加了控制scope_guard是否执行的机制，然后将ENSURE从throw改为return。 </p>
+<p>至此，“简洁之道”已经展示完全了，我们实现了避免检查返回值，和简洁的回滚操作（RAII不需要显式回滚，而事务性回滚紧挨着事务性操作且没有重复）。<br>它是你寻找的“完美之道”吗 ？</p>
+<hr>
+<p>真正经过大量编程实践的工程师可能明白，出错时回滚操作还不一定就完事了。很多时候，错误是因为代码存在bug，我们需要把它找出来才能万事大吉，而出错时的上下文信息可以提供重要线索。 如何尽可能多地记录上下文，而且要足够简洁，下篇文章将会展示一些探索。</p>
+<hr>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>C++11（及现代C++风格）和快速迭代式开发<br><a target="_blank" rel="noopener" href="http://mindhacks.cn/2012/08/27/modern-cpp-practices/">http://mindhacks.cn/2012/08/27/modern-cpp-practices/</a><br>Generic: Change the Way You Write Exception-Safe Code — Forever<br><a target="_blank" rel="noopener" href="http://www.drdobbs.com/cpp/generic-change-the-way-you-write-excepti/184403758">http://www.drdobbs.com/cpp/generic-change-the-way-you-write-excepti/184403758</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C</a>
+              <a href="/tags/exception/" rel="tag"># exception</a>
+              <a href="/tags/%E5%BC%82%E5%B8%B8/" rel="tag"># 异常</a>
+              <a href="/tags/%E7%BC%96%E7%A8%8B/" rel="tag"># 编程</a>
+              <a href="/tags/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="tag"># 错误处理</a>
+              <a href="/tags/RAII/" rel="tag"># RAII</a>
+              <a href="/tags/scope-guard/" rel="tag"># scope guard</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/01/12/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%80/" rel="prev" title="错误处理的简洁之道 (一) C语言">
+                  <i class="fa fa-chevron-left"></i> 错误处理的简洁之道 (一) C语言
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/01/25/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%89-%E4%B8%8A%E4%B8%8B%E6%96%87/" rel="next" title="错误处理的简洁之道 (三) 上下文">
+                  错误处理的简洁之道 (三) 上下文 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder"></span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

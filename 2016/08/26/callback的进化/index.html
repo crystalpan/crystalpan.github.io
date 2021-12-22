@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crystalpan.club","root":"/","images":"/images","scheme":"Gemini","version":"8.7.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="Don’t ask, I’ll call you back.这句来自好莱坞选角导演的老话是callback的写照，callback相比polling更高效和及时，只要可能，我们就会选择callback方式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="callback的进化">
+<meta property="og:url" content="http://crystalpan.club/2016/08/26/callback%E7%9A%84%E8%BF%9B%E5%8C%96/index.html">
+<meta property="og:site_name" content="潘潘的笔记本">
+<meta property="og:description" content="Don’t ask, I’ll call you back.这句来自好莱坞选角导演的老话是callback的写照，callback相比polling更高效和及时，只要可能，我们就会选择callback方式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-08-26T02:58:45.000Z">
+<meta property="article:modified_time" content="2021-08-19T06:03:43.573Z">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://crystalpan.club/2016/08/26/callback%E7%9A%84%E8%BF%9B%E5%8C%96/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://crystalpan.club/2016/08/26/callback%E7%9A%84%E8%BF%9B%E5%8C%96/","path":"2016/08/26/callback的进化/","title":"callback的进化"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>callback的进化 | 潘潘的笔记本</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">潘潘的笔记本</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-6"><a class="nav-link" href="#Don%E2%80%99t-ask-I%E2%80%99ll-call-you-back"><span class="nav-number">1.</span> <span class="nav-text">Don’t ask, I’ll call you back.</span></a></li></ol></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88"><span class="nav-number"></span> <span class="nav-text">函数指针</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%A7%E6%89%BF%E6%A8%A1%E5%BC%8F"><span class="nav-number"></span> <span class="nav-text">继承模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%BC%8F"><span class="nav-number"></span> <span class="nav-text">函数对象模式</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#Ring-ring-ring-%E2%80%A6"><span class="nav-number">1.</span> <span class="nav-text">Ring, ring, ring …</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#Hi-we-want-you"><span class="nav-number">2.</span> <span class="nav-text">Hi, we want you!</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://crystalpan.club/2016/08/26/callback%E7%9A%84%E8%BF%9B%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="潘潘的笔记本">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          callback的进化
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2016-08-26 10:58:45" itemprop="dateCreated datePublished" datetime="2016-08-26T10:58:45+08:00">2016-08-26</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-08-19 14:03:43" itemprop="dateModified" datetime="2021-08-19T14:03:43+08:00">2021-08-19</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h6 id="Don’t-ask-I’ll-call-you-back"><a href="#Don’t-ask-I’ll-call-you-back" class="headerlink" title="Don’t ask, I’ll call you back."></a><em>Don’t ask, I’ll call you back.</em></h6><p>这句来自好莱坞选角导演的老话是callback的写照，callback相比polling更高效和及时，只要可能，我们就会选择callback方式。</p>
+<span id="more"></span>
+
+<h2 id="函数指针"><a href="#函数指针" class="headerlink" title="函数指针"></a>函数指针</h2><p>在C语言场景下，函数指针是唯一的选择，client先把回调函数地址注册给回调者(caller)，后者在合适的时候调用该函数。 </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*CALL_BACK)</span> <span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">eth_itf_notify_register</span><span class="params">(CALL_BACK cb)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p> caller需要对注册的函数指针进行保存，如果全局仅支持一个回调函数，那么一个全局变量就可以解决问题。当允许注册多个回调函数时，需要使用数据结构（数组，链表）来存储。 </p>
+<p>进一步的当存在回调规则时，比如仅特定对象（某个网络接口），这个数据结构会更复杂一些，它需要支持规则查找。  </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">eth_itf_notify_register</span> <span class="params">(<span class="keyword">int</span> itf, event_callback cb)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>函数指针注册时可以额外带一个参数（cookie），并在回调时传递回来，适用于回调函数内部的处理需要上下文信息，可以定义多个cookie。最极端的例子是定时器的回调函数，其参数全都是cookie，这样只需要一个类型转换，任何函数都可以被封装成timer_callback类型。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*timer_callback)</span> <span class="params">(<span class="keyword">void</span> *cookie_0, <span class="keyword">void</span> *cookie_1, <span class="keyword">void</span> *cookie_2)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">timer_register</span> <span class="params">(<span class="keyword">int</span> delay_ms, timer_callback cb, <span class="keyword">void</span> *cookie_0, <span class="keyword">void</span> *cookie_1, <span class="keyword">void</span> *cookie_2)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p> 某些场景还需要支持回调注销，比如某个定时器还未到，但已经不再需要了，这时候可以通过注销来避免调用。 </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">timer_unregister</span><span class="params">(timer_callback cb)</span></span></span><br></pre></td></tr></table></figure>
+
+<p> 总结下来，一个完整的callback机制会涉及这几个功能： 数据结构（存储和查找函数指针以及cookie），上下文信息传递，生命周期管理 </p>
+<p>接下来我们切换到C++的世界，看看上述这几个功能点的实现可以有怎样的变化。</p>
+<hr>
+<h2 id="继承模式"><a href="#继承模式" class="headerlink" title="继承模式"></a>继承模式</h2><p>通过继承机制，上下文信息和生命周期可以有另一番实现方式，主要通过client继承并实现caller定义的类来实现。 </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ETH_ITF_NOTIFY</span> &#123;</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">ETH_ITF_NOTIFY</span>(<span class="keyword">int</span> itf);</span><br><span class="line">    <span class="keyword">virtual</span> ~<span class="built_in">ETH_ITF_NOTIFY</span>();</span><br><span class="line">     </span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">operator</span> <span class="params">()</span> <span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span> </span>= <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="keyword">int</span> itf;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>其中的函数操作符重载函数为纯虚函数，由client来实现相当于回调函数部分的功能，实际上不必非得是重载函数操作符，只要是虚函数就行。构造函数相当于register函数，析构函数相当于unregister。 client部分的代码可以是这样， </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CLIENT_NOTIFY</span> :</span> <span class="keyword">public</span> ETH_ITF_NOTIFY &#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">operator</span> <span class="params">()</span> <span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="comment">//do something as client</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">CLIENT_NOTIFY</span>(<span class="keyword">int</span> itf, <span class="keyword">int</span> context_v)</span><br><span class="line">    : <span class="built_in">ETH_ITF_NOTIFY</span>(itf),</span><br><span class="line">      <span class="built_in">context_val</span>(context_v)</span><br><span class="line">    &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="keyword">int</span> context_val;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">demo</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    CLIENT_NOTIFY *notify_manual = <span class="keyword">new</span> <span class="built_in">CLIENT_NOTIFY</span>(<span class="number">1</span>,<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">CLIENT_NOTIFY <span class="title">notify_scope</span><span class="params">(<span class="number">2</span>,<span class="number">0</span>)</span></span>;</span><br><span class="line">     </span><br><span class="line">        <span class="comment">//stuff ...</span></span><br><span class="line">     </span><br><span class="line">        <span class="comment">//callback invalidated automatically before exit the scope</span></span><br><span class="line">    &#125;</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">delete</span> notify_manual;   <span class="comment">//manually invalidate callback</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到CLIENT_NOTIFY对象的生命周期决定了回调的有效期，常见的方式是把它作为其他类的成员对象，自动跟随其它需要该回调服务的对象的生命周期，当需要该回调服务的对象结束时，回调自然也就不再需要了。<br>上下文也变得更灵活，通过定义CLIENT_NOTIFY的成员变量，我们可以支持任意数量和类型的上下文，在构造时传入这些上下文。重点是，上下文变得与caller无关了。 顺便演示一下如何基于STL的multimap来实现数据结构部分的实现，multimap的key就是回调规则。 </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;map&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> std::multimap&lt;<span class="keyword">int</span>, ETH_ITF_NOTIFY *&gt; DB_NOTIFY;</span><br><span class="line"><span class="keyword">static</span>  DB_NOTIFY db_notify;</span><br><span class="line"></span><br><span class="line">ETH_ITF_NOTIFY::<span class="built_in">ETH_ITF_NOTIFY</span>(<span class="keyword">int</span> _itf)</span><br><span class="line">:<span class="built_in">itf</span>(_itf)</span><br><span class="line">&#123;</span><br><span class="line">    db_notify.<span class="built_in">insert</span>(std::<span class="built_in">make_pair</span>(itf, <span class="keyword">this</span>));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ETH_ITF_NOTIFY::~<span class="built_in">ETH_ITF_NOTIFY</span>()</span><br><span class="line">&#123;</span><br><span class="line">    DB_NOTIFY::iterator it_first = db_notify.<span class="built_in">lower_bound</span>(itf);</span><br><span class="line">    DB_NOTIFY::iterator it_end   = db_notify.<span class="built_in">upper_bound</span>(itf);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(DB_NOTIFY::iterator it=it_first; it!=it_end; it++) &#123;</span><br><span class="line">        <span class="keyword">if</span>(it-&gt;second == <span class="keyword">this</span>) &#123;</span><br><span class="line">            db_notify.<span class="built_in">erase</span>(it);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dispatch_notify</span><span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    DB_NOTIFY::iterator it_first = db_notify.<span class="built_in">lower_bound</span>(itf);</span><br><span class="line">    DB_NOTIFY::iterator it_end   = db_notify.<span class="built_in">upper_bound</span>(itf);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(DB_NOTIFY::iterator it=it_first; it!=it_end; it++) &#123;</span><br><span class="line">        (*it-&gt;second)(itf, link, speed);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>无可否认，继承是一种强耦合，如果有其他选择，继承可能就不会是首选。</p>
+<hr>
+<h2 id="函数对象模式"><a href="#函数对象模式" class="headerlink" title="函数对象模式"></a>函数对象模式</h2><p>C++11引入的functional库极大地便利了C++编程，这一点在回调上体现得非常充分。<br>下面的代码展示了如何通过function对象来实现回调注册。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;functional&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std::placeholders;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> std::function&lt;<span class="built_in"><span class="keyword">void</span></span> (<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)&gt; CALL_BACK_F;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">eth_itf_notify_bind</span><span class="params">(CALL_BACK_F cb)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">client_notify</span><span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">client_notify_cookie</span><span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed, <span class="keyword">void</span> *cookie)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">CLIENT_IMPL</span> &#123;</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">eth_itf_notify</span><span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">demo_2</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//no cookie</span></span><br><span class="line">    <span class="built_in">eth_itf_notify_bind</span>(client_notify);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//with cookie</span></span><br><span class="line">    <span class="keyword">int</span> context;</span><br><span class="line">    <span class="built_in">eth_itf_notify_bind</span>(std::<span class="built_in">bind</span>(client_notify_cookie,_1,_2,_3,&amp;context));</span><br><span class="line">     </span><br><span class="line">    <span class="comment">//class member function</span></span><br><span class="line">    CLIENT_IMPL client;</span><br><span class="line">    <span class="built_in">eth_itf_notify_bind</span>(std::<span class="built_in">bind</span>(&amp;CLIENT_IMPL::eth_itf_notify, &amp;client, _1, _2, _3));</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>function对象的神奇之处在于可以封装任何可调用的接口，包括函数，类成员函数，以及带有operator ()成员的函数对象，上面的代码展示了前两种情况。<br>这里的类对象不再局限于某个专用回调接口类（ETH_ITF_NOTIFY）的子类，而是任意对象（只要能bind），这一点令代码大为简化。例如演示代码，直接将某个功能实现类的对象和成员函数bind为回调函数对象，这意味着回调函数对象有着大量的上下文变量可以使用，相比之下，继承模式则需要重复定义和显式传递上下文。<br>此外，上下文的传递也可以通过bind来绑定额外的参数。需要注意的是，任何bind进去的参数都是以值的方式存储在function对象里，也就是copy了一份，对于引用类型，需要显式地用reference_wrapper 来封装，或者直接传递指针。</p>
+<p>和继承模式不同，我们无法通过function的构造析构来实现回调的注册和注销，演示代码展示了通过专用的接口来注册，那么如何注销呢？ 是不是可以参考C方式提供一个unregister接口，可惜function对象并不支持相互比较，而unregister的内部实现必须通过比较来查找。<br>常见的方式是通过智能指针shared_ptr 和 weak_ptr。 </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;memory&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> std::shared_ptr;</span><br><span class="line"><span class="keyword">using</span> std::weak_ptr;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">eth_itf_notify_attach</span><span class="params">(<span class="keyword">int</span> itf, weak_ptr&lt;CALL_BACK_F&gt; wp_cb)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">demo_3</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//no cookie</span></span><br><span class="line">    <span class="function">shared_ptr&lt;CALL_BACK_F&gt; <span class="title">sp</span><span class="params">(<span class="keyword">new</span> CALL_BACK_F(client_notify))</span></span>;</span><br><span class="line">    <span class="built_in">eth_itf_notify_attach</span>(<span class="number">1</span>, sp);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//with cookie</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">int</span> context;</span><br><span class="line">        <span class="function">shared_ptr&lt;CALL_BACK_F&gt; <span class="title">sp2</span><span class="params">(<span class="keyword">new</span> CALL_BACK_F)</span></span>;</span><br><span class="line">        *sp2 = std::<span class="built_in">bind</span>(client_notify_cookie,_1,_2,_3,&amp;context);</span><br><span class="line">        <span class="built_in">eth_itf_notify_attach</span>(<span class="number">2</span>, sp2);</span><br><span class="line">    &#125;   <span class="comment">//callback function client_notify_cookie turns into invalid</span></span><br><span class="line">     </span><br><span class="line">    <span class="comment">//class member function</span></span><br><span class="line">    CLIENT_IMPL client;</span><br><span class="line">    <span class="function">shared_ptr&lt;CALL_BACK_F&gt; <span class="title">sp3</span><span class="params">(<span class="keyword">new</span> CALL_BACK_F)</span></span>;</span><br><span class="line">    *sp3 = std::<span class="built_in">bind</span>(&amp;CLIENT_IMPL::eth_itf_notify, &amp;client, _1, _2, _3);</span><br><span class="line">    <span class="built_in">eth_itf_notify_attach</span>(<span class="number">3</span>, sp3);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>和继承模式类似，shared_ptr对象的生命周期决定了回调对象的生命周期。 另外，在dispatch中需要判断weak_ptr是否有效（expired()），清理无效对象的工作可以在attach时进行。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> std::multimap&lt;<span class="keyword">int</span>, weak_ptr&lt;CALL_BACK_F&gt; &gt; DB_FUNC;</span><br><span class="line"><span class="keyword">static</span>  DB_FUNC db_func;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">bool</span> <span class="title">is_cb_expired</span><span class="params">(<span class="keyword">const</span> DB_FUNC::value_type &amp;val_pair)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> val_pair.second.<span class="built_in">expired</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;algorithm&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> std::find_if;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">eth_itf_notify_attach</span><span class="params">(<span class="keyword">int</span> itf, weak_ptr&lt;CALL_BACK_F&gt; wp_cb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    db_func.<span class="built_in">insert</span>(std::<span class="built_in">make_pair</span>(itf, wp_cb));</span><br><span class="line"></span><br><span class="line">    <span class="comment">//purge invalid cb</span></span><br><span class="line">    DB_FUNC::iterator it;</span><br><span class="line">    <span class="keyword">while</span>( db_func.<span class="built_in">end</span>() !=</span><br><span class="line">            (it=<span class="built_in">find_if</span>(db_func.<span class="built_in">begin</span>(), db_func.<span class="built_in">end</span>(), is_cb_expired))) &#123;</span><br><span class="line">        db_func.<span class="built_in">erase</span>(it);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dispatch_func</span><span class="params">(<span class="keyword">int</span> itf, <span class="keyword">int</span> link, <span class="keyword">int</span> speed)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    DB_FUNC::iterator it_first = db_func.<span class="built_in">lower_bound</span>(itf);</span><br><span class="line">    DB_FUNC::iterator it_end   = db_func.<span class="built_in">upper_bound</span>(itf);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(DB_FUNC::iterator it=it_first; it!=it_end; it++) &#123;</span><br><span class="line">        weak_ptr&lt;CALL_BACK_F&gt; wp=it-&gt;second;</span><br><span class="line">     </span><br><span class="line">        <span class="keyword">if</span>(!wp.<span class="built_in">expired</span>())</span><br><span class="line">            (*wp.<span class="built_in">lock</span>())(itf, link, speed);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h6 id="Ring-ring-ring-…"><a href="#Ring-ring-ring-…" class="headerlink" title="Ring, ring, ring …"></a><em>Ring, ring, ring …</em></h6><h6 id="Hi-we-want-you"><a href="#Hi-we-want-you" class="headerlink" title="Hi, we want you!"></a><em>Hi, we want you!</em></h6>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/08/15/%E5%BF%83%E7%90%86%E5%AD%A6%E6%B5%93%E6%B1%A4%E5%AE%9D%EF%BC%88%E4%B8%89%EF%BC%89-%E6%84%8F%E8%AF%86/" rel="prev" title="心理学浓汤宝（三） 意识">
+                  <i class="fa fa-chevron-left"></i> 心理学浓汤宝（三） 意识
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/10/30/%E5%BF%83%E7%90%86%E5%AD%A6%E6%B5%93%E6%B1%A4%E5%AE%9D%EF%BC%88%E5%9B%9B%EF%BC%89%E5%8F%91%E5%B1%95%E5%92%8C%E6%8C%91%E6%88%98/" rel="next" title="心理学浓汤宝（四）发展和挑战">
+                  心理学浓汤宝（四）发展和挑战 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder"></span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

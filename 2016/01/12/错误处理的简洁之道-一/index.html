@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crystalpan.club","root":"/","images":"/images","scheme":"Gemini","version":"8.7.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="多年的编程体验中，最令我如鲠在喉久咳不爽的就是那些喧宾夺主，随处可见，不忍直视的针对错误case的处理代码。包括各种各样的返回值判断和资源的回滚释放，以及上下文打印输出。每每阅读代码时，必须努力克服乌泱乌泱的干扰，从其缝隙中找出苟延残喘的happy path。  然而作为产品级的代码，错误处理是无法回避的，最低限度也需要检测错误并做sudden death的处理，更进一步的要求便是回滚操作了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="错误处理的简洁之道 (一) C语言">
+<meta property="og:url" content="http://crystalpan.club/2016/01/12/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%80/index.html">
+<meta property="og:site_name" content="潘潘的笔记本">
+<meta property="og:description" content="多年的编程体验中，最令我如鲠在喉久咳不爽的就是那些喧宾夺主，随处可见，不忍直视的针对错误case的处理代码。包括各种各样的返回值判断和资源的回滚释放，以及上下文打印输出。每每阅读代码时，必须努力克服乌泱乌泱的干扰，从其缝隙中找出苟延残喘的happy path。  然而作为产品级的代码，错误处理是无法回避的，最低限度也需要检测错误并做sudden death的处理，更进一步的要求便是回滚操作了。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-01-12T02:22:27.000Z">
+<meta property="article:modified_time" content="2021-08-09T08:51:58.469Z">
+<meta property="article:tag" content="C">
+<meta property="article:tag" content="exception">
+<meta property="article:tag" content="异常">
+<meta property="article:tag" content="编程">
+<meta property="article:tag" content="错误处理">
+<meta property="article:tag" content="RAII">
+<meta property="article:tag" content="scope guard">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://crystalpan.club/2016/01/12/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%80/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://crystalpan.club/2016/01/12/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%80/","path":"2016/01/12/错误处理的简洁之道-一/","title":"错误处理的简洁之道 (一) C语言"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>错误处理的简洁之道 (一) C语言 | 潘潘的笔记本</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">潘潘的笔记本</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8F%E5%B0%81%E8%A3%85"><span class="nav-number">1.</span> <span class="nav-text">宏封装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%9E%E5%B1%80%E9%83%A8%E8%B7%B3%E8%BD%AC"><span class="nav-number">2.</span> <span class="nav-text">非局部跳转</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">3.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://crystalpan.club/2016/01/12/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%B8%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="潘潘的笔记本">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          错误处理的简洁之道 (一) C语言
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2016-01-12 10:22:27" itemprop="dateCreated datePublished" datetime="2016-01-12T10:22:27+08:00">2016-01-12</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-08-09 16:51:58" itemprop="dateModified" datetime="2021-08-09T16:51:58+08:00">2021-08-09</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>多年的编程体验中，最令我如鲠在喉久咳不爽的<br>就是那些喧宾夺主，随处可见，不忍直视的针对错误case的处理代码。<br>包括各种各样的返回值判断和资源的回滚释放，以及上下文打印输出。<br>每每阅读代码时，必须努力克服乌泱乌泱的干扰，从其缝隙中找出苟延残喘的happy path。 </p>
+<p>然而作为产品级的代码，错误处理是无法回避的，最低限度也需要检测错误并做sudden death的处理，更进一步的要求便是回滚操作了。 </p>
+<p>作为一个完美主义强迫症的沉迷者，我摸索了以下如何简化这些错误处理（仅限于C和C++），并整理为本系列文档。 在开始前，我想强调的是，错误处理，确有完美解决之道。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="宏封装"><a href="#宏封装" class="headerlink" title="宏封装"></a>宏封装</h2><p>先来看最“raw”的处理方法</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ( OK != foo() ) &#123;</span><br><span class="line"></span><br><span class="line">  trace(“foo failed”);</span><br><span class="line">  <span class="keyword">return</span> ERROR;</span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> ( OK != bar() ) &#123;</span><br><span class="line"></span><br><span class="line">  trace(“bar failed”);</span><br><span class="line">  rollback_foo();</span><br><span class="line">  <span class="keyword">return</span> ERROR;</span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> ( OK != wow() ) &#123;</span><br><span class="line"></span><br><span class="line">  trace(“wow failed”);</span><br><span class="line">  rollback_foo();</span><br><span class="line">  rollback_bar();</span><br><span class="line">  <span class="keyword">return</span> ERROR;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> OK</span><br></pre></td></tr></table></figure>
+
+<p>这段平铺直叙的代码缺点是：存在重复代码， 以及happy path不清晰。<br>可以想象，随着函数调用和逻辑分支的增加，rollback处理的代码量也随之增加，重复的代码量也在增加。这导致happy path 越来越难以一眼看清。</p>
+<p>通常我们会使用宏来消除重复，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expr) \</span></span><br><span class="line"><span class="meta">  <span class="meta-keyword">if</span>(!(expr)) &#123;\</span></span><br><span class="line"><span class="meta">    trace(<span class="meta-string">&quot;%s failed&quot;</span>, #expr);</span></span><br><span class="line">    <span class="keyword">break</span>;\</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">func</span> <span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> flag = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">do</span> &#123;</span><br><span class="line">    ENSURE(OK == foo());</span><br><span class="line">    flag |= OK_foo;</span><br><span class="line"></span><br><span class="line">    ENSURE(OK == bar());</span><br><span class="line">    flag |= OK_bar;</span><br><span class="line">     </span><br><span class="line">    ENSURE(OK == wow());</span><br><span class="line">    <span class="keyword">return</span> OK</span><br><span class="line"></span><br><span class="line">  &#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(OK_bar &amp; flag) rollback bar;</span><br><span class="line">  <span class="keyword">if</span>(OK_foo &amp; flag) rollback foo;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> ERROR;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>除了break，也可以用goto来控制，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ENSURE(expr) \</span></span><br><span class="line"><span class="meta">  <span class="meta-keyword">if</span>(!(expr)) &#123;\</span></span><br><span class="line"><span class="meta">    trace(<span class="meta-string">&quot;%s failed&quot;</span>, #expr);</span></span><br><span class="line">    <span class="keyword">goto</span> err_handle;\</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">func</span> <span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">int</span> flag = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">  ENSURE(OK == foo());</span><br><span class="line">  flag |= OK_foo;</span><br><span class="line"></span><br><span class="line">  ENSURE(OK == bar());</span><br><span class="line">  flag |= OK_bar;</span><br><span class="line"></span><br><span class="line">  ENSURE(OK == wow());</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> OK;</span><br><span class="line"></span><br><span class="line">err_handle:</span><br><span class="line">  <span class="keyword">if</span>(OK_bar &amp; flag) rollback bar;</span><br><span class="line">  <span class="keyword">if</span>(OK_foo &amp; flag) rollback foo;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> ERROR;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用break的好处在于同时也适用于C++，因为break跳出时会销毁for/while中的临时变量对象，即调用它们的析构函数，而goto就没有这个待遇了。<br>但break也有局限，如果多个for/while嵌套，那么它就无法直截了当地跳到最外层。<br>对了，如果不需要rollback的话，也可以用return来控制。</p>
+<p>这还不够完美，对吧<br>在抵达完美之前，我们先看另外一个C语言世界中比较另类的手段：非局部跳转 setjmp/longjmp。某些情况下它可能就是C语言世界里的完美方案。</p>
+<hr>
+<h2 id="非局部跳转"><a href="#非局部跳转" class="headerlink" title="非局部跳转"></a>非局部跳转</h2><p>相比goto语句只能在函数内部跳转，非局部跳转可以跨越函数，有点像C++的异常，同样回卷了堆栈，但不会调用临时对象的析构函数。<br>setjmp设置返回点，longjmp跳转到指定返回点。 </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> jmp_buf buf;  </span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">second</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;  </span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;second\n&quot;</span>);</span><br><span class="line">  longjmp(buf,<span class="number">1</span>);</span><br><span class="line">&#125;  </span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">first</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;  </span><br><span class="line">  second();  </span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;first\n&quot;</span>);</span><br><span class="line">&#125;  </span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;     </span><br><span class="line">  <span class="keyword">if</span> ( ! setjmp(buf) ) &#123;  </span><br><span class="line">    first();</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;main\n&quot;</span>);</span><br><span class="line">  &#125;  </span><br><span class="line">    </span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;  </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<p>运行结果是</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">second </span><br><span class="line"></span><br><span class="line">main </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>比较烧脑的地方是，一次调用setjmp会返回两次:<br>第一次是首次运行到时，返回值为0，<br>第二次是longjmp调用后，返回值是longjmp指定的参数1。</p>
+<p>可以这样认为，返回点的PC指针指向了setjmp函数的内部，因此longjmp跳转到了setjmp内部，同时堆栈也回卷到了相应的位置，于是乎好像时光机复位到了当初调用setjmp的时候，只是返回值不同罢了。<br>我们也可以嵌套使用，保存上一个返回点信息，设置当前位置为新的返回点，等到jump回来时，再接着jump到上一个返回点，就像一层层的try, throw，catch，再throw的回滚过程。 </p>
+<p>自然的，有人想到了用它来做错误处理，甚至用宏模拟出了C++里的try/throw/catch的语法，具体可以看<a target="_blank" rel="noopener" href="http://www.di.unipi.it/~nids/docs/longjump_try_trow_catch.html">这里</a>。 </p>
+<p>非局部跳转的最大好处就是恢复了返回值的真正用途，它不再用来指示错误与否，而是作为结果输出，这样一来，一个函数调用可以作为另外一个表达式的参数，比如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">return base() + min(now(),last());</span><br></pre></td></tr></table></figure>
+
+<p>这对于写出简洁而富有表达力的代码很重要。 </p>
+<p>然而，回滚操作仍是永远的痛，它只能在某些情况下拥有止痛药。<br>当回滚操作的形式比较单一时，比如总是为释放内存资源，那么我们可以创建一个全局(per thread indeed)的指针队列，每申请一块内存就往队列里加一个指针指向该内存地址，当longjmp跳转到返回点时，统一释放队列里的所有指针指向的内存。<br>进一步的，我们可以封装所有的回滚操作为相同类型的函数指针，全局队列就变为了保存函数指针和相应的参数，如此可以解决多种形式的回滚操作。</p>
+<p>但…这还是不够完美，对吗<br>在C语言的世界里，或许这是最接近完美的方案了，但它确实还不够简洁。<br>所幸C++为我们开辟了新的天地，我们将继续在那里找寻，直到由衷地说出： </p>
+<p>that’s it！</p>
+<hr>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>setjmp和longjmp函数使用详解 <a target="_blank" rel="noopener" href="http://blog.csdn.net/chenyiming_1990/article/details/8683413">http://blog.csdn.net/chenyiming_1990/article/details/8683413</a> Exceptions in C with Longjmp and Setjmp <a target="_blank" rel="noopener" href="http://www.di.unipi.it/~nids/docs/longjump_try_trow_catch.html">http://www.di.unipi.it/~nids/docs/longjump_try_trow_catch.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/C/" rel="tag"># C</a>
+              <a href="/tags/exception/" rel="tag"># exception</a>
+              <a href="/tags/%E5%BC%82%E5%B8%B8/" rel="tag"># 异常</a>
+              <a href="/tags/%E7%BC%96%E7%A8%8B/" rel="tag"># 编程</a>
+              <a href="/tags/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="tag"># 错误处理</a>
+              <a href="/tags/RAII/" rel="tag"># RAII</a>
+              <a href="/tags/scope-guard/" rel="tag"># scope guard</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/01/17/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E7%9A%84%E7%AE%80%E6%B4%81%E4%B9%8B%E9%81%93-%E4%BA%8C-c/" rel="next" title="错误处理的简洁之道 (二) C++">
+                  错误处理的简洁之道 (二) C++ <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder"></span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
